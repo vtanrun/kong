@@ -4,7 +4,6 @@ return {
     ]],
 
     teardown = function(connector)
-      assert(connector:connect_migrations())
       assert(connector:query [[
         ALTER TABLE IF EXISTS ONLY "ratelimiting_metrics"
          DROP CONSTRAINT IF EXISTS "ratelimiting_metrics_pkey" CASCADE,
@@ -26,7 +25,6 @@ return {
     ]],
 
     teardown = function(connector)
-      assert(connector:connect_migrations())
       assert(connector:query([[
         DROP TABLE IF EXISTS ratelimiting_metrics;
         CREATE TABLE IF NOT EXISTS ratelimiting_metrics (

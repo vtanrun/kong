@@ -10,7 +10,7 @@ local function setup_it_block()
             infos = function()
               return {}
             end,
-            connect_migrations = function()
+            connect = function()
               return true
             end,
             schema_migrations = function()

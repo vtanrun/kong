@@ -59,12 +59,6 @@ function Connector:connect()
 end
 
 
-function Connector:connect_migrations()
-  error(fmt("connect_migrations() not implemented for '%s' strategy",
-            self.database))
-end
-
-
 function Connector:setkeepalive()
   error(fmt("setkeepalive() not implemented for '%s' strategy", self.database))
 end

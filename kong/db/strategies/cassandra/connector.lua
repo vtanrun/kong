@@ -172,43 +172,15 @@ function CassandraConnector:infos()
 end
 
 
-function CassandraConnector:connect()
+function CassandraConnector:connect(opts)
   local conn = self:get_stored_connection()
   if conn then
     return conn
   end
 
-  local peer, err = self.cluster:next_coordinator()
+  local peer, err = self.cluster:next_coordinator(opts)
   if not peer then
     return nil, err
-  end
-
-  self:store_connection(peer)
-
-  return peer
-end
-
-
--- open a connection from the first available contact point,
--- without a keyspace
-function CassandraConnector:connect_migrations(opts)
-  local conn = self:get_stored_connection()
-  if conn then
-    return conn
-  end
-
-  opts = opts or {}
-
-  local peer, err = self.cluster:first_coordinator()
-  if not peer then
-    return nil, "failed to acquire contact point: " .. err
-  end
-
-  if not opts.no_keyspace then
-    local ok, err = peer:change_keyspace(self.keyspace)
-    if not ok then
-      return nil, err
-    end
   end
 
   self:store_connection(peer)

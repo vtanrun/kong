@@ -4,7 +4,6 @@ return {
     ]],
 
     teardown = function(connector)
-      assert(connector:connect_migrations())
       assert(connector:query [[
         DROP INDEX IF EXISTS "oauth2_authorization_api_id_idx";
         DROP INDEX IF EXISTS "oauth2_tokens_api_id_idx";
@@ -33,7 +32,6 @@ return {
     ]],
 
     teardown = function(connector)
-      assert(connector:connect_migrations())
       assert(connector:query([[
         DROP INDEX IF EXISTS oauth2_authorization_codes_api_id_idx;
         DROP INDEX IF EXISTS oauth2_tokens_api_id_idx;

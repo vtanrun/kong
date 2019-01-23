@@ -428,7 +428,7 @@ do
 
 
   function DB:are_014_apis_present()
-    local ok, err = self.connector:connect_migrations({ no_keyspace = true })
+    local ok, err = self.connector:connect({ no_keyspace = true })
     if not ok then
       return nil, prefix_err(self, err)
     end
@@ -446,7 +446,7 @@ do
 
 
   function DB:schema_bootstrap()
-    local ok, err = self.connector:connect_migrations({ no_keyspace = true })
+    local ok, err = self.connector:connect({ no_keyspace = true })
     if not ok then
       return nil, prefix_err(self, err)
     end
@@ -465,7 +465,7 @@ do
 
 
   function DB:schema_reset()
-    local ok, err = self.connector:connect_migrations({ no_keyspace = true })
+    local ok, err = self.connector:connect({ no_keyspace = true })
     if not ok then
       return nil, prefix_err(self, err)
     end
@@ -498,7 +498,7 @@ do
       error("options.run_up or options.run_teardown must be given", 2)
     end
 
-    local ok, err = self.connector:connect_migrations()
+    local ok, err = self.connector:connect()
     if not ok then
       return nil, prefix_err(self, err)
     end

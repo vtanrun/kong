@@ -200,8 +200,6 @@ return {
     ]],
 
     teardown = function(connector, helpers)
-      assert(connector:connect_migrations())
-
       for row, err in connector:iterate('SELECT * FROM "plugins";') do
         if err then
           return nil, err

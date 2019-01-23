@@ -100,7 +100,6 @@ return {
     ]],
 
     teardown = function(connector)
-      assert(connector:connect_migrations())
       assert(connector:query [[
         DO $$
         BEGIN
@@ -120,7 +119,7 @@ return {
     teardown = function(connector)
       local cjson = require "cjson"
 
-      local coordinator = assert(connector:connect_migrations())
+      local coordinator = assert(connector:connect())
 
       for rows, err in coordinator:iterate([[
         SELECT id, redirect_uri FROM oauth2_credentials]]) do

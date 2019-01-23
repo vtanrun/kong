@@ -309,7 +309,7 @@ function _mt:infos()
 end
 
 
-function _mt:connect()
+function _mt:connect(opts)
   local conn = self:get_stored_connection()
   if conn then
     return conn
@@ -323,11 +323,6 @@ function _mt:connect()
   self:store_connection(connection)
 
   return connection
-end
-
-
-function _mt:connect_migrations()
-  return self:connect()
 end
 
 

@@ -31,8 +31,6 @@ return {
     ]],
 
     teardown = function(connector, helpers)
-      assert(connector:connect_migrations())
-
       for rows, err in connector:iterate('SELECT * FROM "acls" ORDER BY "created_at";') do
         if err then
           return nil, err
@@ -62,7 +60,7 @@ return {
 
     teardown = function(connector, helpers)
       local cassandra = require "cassandra"
-      local coordinator = assert(connector:connect_migrations())
+      local coordinator = assert(connector:connect())
 
       for rows, err in coordinator:iterate("SELECT * FROM acls") do
         if err then

@@ -11,8 +11,6 @@ return {
     ]],
 
     teardown = function(connector, _)
-      assert(connector:connect_migrations())
-
       for rows, err in connector:iterate('SELECT * FROM "foos";') do
         if err then
           return nil, err
@@ -36,7 +34,7 @@ return {
     ]],
 
     teardown = function(connector, _)
-      local coordinator = assert(connector:connect_migrations())
+      local coordinator = assert(connector:connect())
 
       for rows, err in coordinator:iterate("SELECT * FROM foos") do
         if err then

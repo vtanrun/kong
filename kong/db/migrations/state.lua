@@ -188,7 +188,6 @@ end
 -- }
 --
 function State.load(db)
-
   log.debug("loading subsystems migrations...")
 
   local subsystems, err = load_subsystems(db, db.kong_config.loaded_plugins)
@@ -198,7 +197,7 @@ function State.load(db)
 
   log.verbose("retrieving %s schema state...", db.infos.db_desc)
 
-  local ok, err = db.connector:connect_migrations({ no_keyspace = true })
+  local ok, err = db.connector:connect({ no_keyspace = true })
   if not ok then
     return nil, prefix_err(db, err)
   end

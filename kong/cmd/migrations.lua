@@ -69,6 +69,12 @@ local function confirm_prompt(q)
 end
 
 
+local function _exit(db, status)
+  db:close()
+  os.exit(status)
+end
+
+
 local function execute(args)
   args.db_timeout = args.db_timeout * 1000
   args.lock_timeout = args.lock_timeout
@@ -89,13 +95,14 @@ local function execute(args)
 
   local db = assert(DB.new(conf))
   assert(db:init_connector())
+  assert(db:connect({ no_keyspace = true }))
 
   local schema_state = assert(db:schema_state())
 
   if args.command == "list" then
     if schema_state.needs_bootstrap then
       log("database needs bootstrapping; run 'kong migrations bootstrap'")
-      os.exit(3)
+      _exit(db, 3)
     end
 
     if schema_state.executed_migrations then
@@ -105,14 +112,14 @@ local function execute(args)
     migrations_utils.print_state(schema_state)
 
     if schema_state.pending_migrations then
-      os.exit(4)
+      _exit(db, 4)
     end
 
     if schema_state.new_migrations then
-      os.exit(5)
+      _exit(db, 5)
     end
 
-    -- exit(0)
+    -- _exit(0)
 
   elseif args.command == "bootstrap" then
     migrations_utils.bootstrap(schema_state, db, args.lock_timeout)
@@ -131,9 +138,10 @@ local function execute(args)
 
     local ok = migrations_utils.reset(schema_state, db, args.lock_timeout)
     if not ok then
-      os.exit(1)
+      _exit(db, 1)
     end
-    os.exit(0)
+
+    _exit(db, 0)
 
   elseif args.command == "up" then
     migrations_utils.up(schema_state, db, {

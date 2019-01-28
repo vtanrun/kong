@@ -59,6 +59,16 @@ function Connector:connect()
 end
 
 
+function Connector:check_connected()
+  local conn = self:get_stored_connection()
+  if not conn then
+    return nil, "no connection opened"
+  end
+
+  return conn
+end
+
+
 function Connector:setkeepalive()
   error(fmt("setkeepalive() not implemented for '%s' strategy", self.database))
 end

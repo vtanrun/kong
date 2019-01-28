@@ -16,7 +16,9 @@ return {
 
     teardown = function(connector)
       local cassandra = require "cassandra"
-      local coordinator = assert(connector:connect())
+
+      local coordinator = assert(connector:get_stored_connection(),
+                                 "no opened connection")
 
       for rows, err in coordinator:iterate([[
         SELECT id FROM plugins WHERE name = 'galileo';

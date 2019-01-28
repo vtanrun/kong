@@ -119,7 +119,8 @@ return {
     teardown = function(connector)
       local cjson = require "cjson"
 
-      local coordinator = assert(connector:connect())
+      local coordinator = assert(connector:get_stored_connection(),
+                                 "no opened connection")
 
       for rows, err in coordinator:iterate([[
         SELECT id, redirect_uri FROM oauth2_credentials]]) do

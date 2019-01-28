@@ -9,9 +9,9 @@ CassandraConnector.__index = CassandraConnector
 
 
 local function wait_for_schema_consensus(self)
-  local conn = self:get_stored_connection()
+  local conn, err = self:check_connected()
   if not conn then
-    error("no connection")
+    error(err)
   end
 
   log.verbose("waiting for Cassandra schema consensus (%dms timeout)...",
@@ -288,9 +288,9 @@ end
 
 
 local function select_keyspaces(self)
-  local conn = self:get_stored_connection()
+  local conn, err = self:check_connected()
   if not conn then
-    error("no connection")
+    error(err)
   end
 
   if not self.major_version then
@@ -313,9 +313,9 @@ end
 
 
 local function select_tables(self)
-  local conn = self:get_stored_connection()
+  local conn, err = self:check_connected()
   if not conn then
-    error("no connection")
+    error(err)
   end
 
   if not self.major_version then
@@ -338,9 +338,9 @@ end
 
 
 function CassandraConnector:reset()
-  local ok, err = self:connect()
-  if not ok then
-    return nil, err
+  local conn, err = self:check_connected()
+  if not conn then
+    error(err)
   end
 
   local rows, err = select_tables(self)
@@ -358,20 +358,13 @@ function CassandraConnector:reset()
     local cql = string.format("DROP TABLE %s.%s",
                               self.keyspace, table_name)
 
-    local ok, err = self:query(cql)
+    local ok, err = conn:execute(cql)
     if not ok then
-      self:setkeepalive()
       return nil, err
     end
   end
 
-  ok, err = wait_for_schema_consensus(self)
-  if not ok then
-    self:setkeepalive()
-    return nil, err
-  end
-
-  ok, err = self:setkeepalive()
+  local ok, err = wait_for_schema_consensus(self)
   if not ok then
     return nil, err
   end
@@ -381,9 +374,9 @@ end
 
 
 function CassandraConnector:truncate()
-  local ok, err = self:connect()
-  if not ok then
-    return nil, err
+  local conn, err = self:check_connected()
+  if not conn then
+    error(err)
   end
 
   local rows, err = select_tables(self)
@@ -405,15 +398,9 @@ function CassandraConnector:truncate()
 
       local ok, err = self:query(cql, nil, nil, "write")
       if not ok then
-        self:setkeepalive()
         return nil, err
       end
     end
-  end
-
-  ok, err = self:setkeepalive()
-  if not ok then
-    return nil, err
   end
 
   return true
@@ -429,9 +416,9 @@ end
 
 
 function CassandraConnector:setup_locks(default_ttl, no_schema_consensus)
-  local ok, err = self:connect()
-  if not ok then
-    return nil, err
+  local conn, err = self:check_connected()
+  if not conn then
+    error(err)
   end
 
   log.debug("creating 'locks' table if not existing...")
@@ -445,7 +432,6 @@ function CassandraConnector:setup_locks(default_ttl, no_schema_consensus)
 
   local ok, err = self:query(cql)
   if not ok then
-    self:setkeepalive()
     return nil, err
   end
 
@@ -456,11 +442,8 @@ function CassandraConnector:setup_locks(default_ttl, no_schema_consensus)
     -- we wait for schema consensus as part of bootstrap
     ok, err = wait_for_schema_consensus(self)
     if not ok then
-      self:setkeepalive()
       return nil, err
     end
-
-    self:setkeepalive()
   end
 
   return true
@@ -468,6 +451,11 @@ end
 
 
 function CassandraConnector:insert_lock(key, ttl, owner)
+  local conn, err = self:check_connected()
+  if not conn then
+    error(err)
+  end
+
   local cql = string.format([[
     INSERT INTO locks(key, owner)
       VALUES(?, ?)
@@ -492,6 +480,11 @@ end
 
 
 function CassandraConnector:read_lock(key)
+  local conn, err = self:check_connected()
+  if not conn then
+    error(err)
+  end
+
   local res, err = self:query([[
     SELECT * FROM locks WHERE key = ?
   ]], { key }, {
@@ -506,6 +499,11 @@ end
 
 
 function CassandraConnector:remove_lock(key, owner)
+  local conn, err = self:check_connected()
+  if not conn then
+    error(err)
+  end
+
   local res, err = self:query([[
     DELETE FROM locks WHERE key = ? IF owner = ?
   ]], { key, owner }, {
@@ -527,7 +525,7 @@ do
 
 
   function CassandraConnector:schema_migrations()
-    local conn, err = self:connect()
+    local conn, err = self:check_connected()
     if not conn then
       error(err)
     end
@@ -606,6 +604,11 @@ do
 
 
   function CassandraConnector:schema_bootstrap(kong_config, default_locks_ttl)
+    local conn, err = self:check_connected()
+    if not conn then
+      error(err)
+    end
+
     -- compute keyspace creation CQL
 
     local cql_replication
@@ -636,13 +639,6 @@ do
 
     else
       error("unknown replication_strategy: " .. tostring(cass_repl_strategy))
-    end
-
-    -- get a contact point connection (no keyspace set)
-
-    local conn = self:get_stored_connection()
-    if not conn then
-      error("no connection")
     end
 
     -- create keyspace if not exists
@@ -702,9 +698,9 @@ do
 
 
   function CassandraConnector:schema_reset()
-    local conn = self:get_stored_connection()
+    local conn, err = self:check_connected()
     if not conn then
-      error("no connection")
+      error(err)
     end
 
     local ok, err = conn:execute(string.format([[
@@ -726,17 +722,17 @@ do
 
 
   function CassandraConnector:run_up_migration(name, up_cql)
+    local conn, err = self:check_connected()
+    if not conn then
+      error(err)
+    end
+
     if type(name) ~= "string" then
       error("name must be a string", 2)
     end
 
     if type(up_cql) ~= "string" then
       error("up_cql must be a string", 2)
-    end
-
-    local conn = self:get_stored_connection()
-    if not conn then
-      error("no connection")
     end
 
     local t_cql = pl_stringx.split(up_cql, ";")
@@ -763,17 +759,17 @@ do
 
 
   function CassandraConnector:record_migration(subsystem, name, state)
+    local conn, err = self:check_connected()
+    if not conn then
+      error(err)
+    end
+
     if type(subsystem) ~= "string" then
       error("subsystem must be a string", 2)
     end
 
     if type(name) ~= "string" then
       error("name must be a string", 2)
-    end
-
-    local conn = self:get_stored_connection()
-    if not conn then
-      error("no connection")
     end
 
     local cql
@@ -862,9 +858,9 @@ do
       ]]
     end
 
-    local conn = self:get_stored_connection()
+    local conn, err = self:check_connected()
     if not conn then
-      error("no connection")
+      error(err)
     end
 
     local rows, err = conn:execute(cql, {
@@ -899,6 +895,7 @@ do
     if err then
       return nil, err
     end
+
     return rows and #rows > 0 or false
   end
 
@@ -1003,6 +1000,11 @@ do
       },
     }
 
+    local conn, err = self:check_connected()
+    if not conn then
+      error(err)
+    end
+
     local exists, err = does_table_exist(self, "schema_migrations")
     if err then
       return nil, err
@@ -1011,11 +1013,6 @@ do
     if not exists then
       -- no trace of legacy migrations: above 0.14
       return res
-    end
-
-    local conn = self:get_stored_connection()
-    if not conn then
-      error("no connection")
     end
 
     local ok, err = conn:change_keyspace(self.keyspace)

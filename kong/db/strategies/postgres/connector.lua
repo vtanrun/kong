@@ -566,12 +566,8 @@ end
 
 
 function _mt:schema_migrations()
-  local conn = self:get_stored_connection()
-  if not conn then
-    error("no connection")
-  end
-
   local has_schema_meta_table
+
   for row in self:iterate(SQL_INFORMATION_SCHEMA_TABLES) do
     local table_name = row.table_name
     if table_name == "schema_meta" then
@@ -608,11 +604,6 @@ end
 
 
 function _mt:schema_bootstrap(kong_config, default_locks_ttl)
-  local conn = self:get_stored_connection()
-  if not conn then
-    error("no connection")
-  end
-
   -- create schema meta table if not exists
 
   logger.verbose("creating 'schema_meta' table if not existing...")
@@ -645,11 +636,6 @@ end
 
 
 function _mt:schema_reset()
-  local conn = self:get_stored_connection()
-  if not conn then
-    error("no connection")
-  end
-
   local schema = self:escape_identifier(self.config.schema)
   local user = self:escape_identifier(self.config.user)
 
@@ -675,11 +661,6 @@ function _mt:run_up_migration(name, up_sql)
 
   if type(up_sql) ~= "string" then
     error("up_sql must be a string", 2)
-  end
-
-  local conn = self:get_stored_connection()
-  if not conn then
-    error("no connection")
   end
 
   local sql = stringx.strip(up_sql)
@@ -710,11 +691,6 @@ function _mt:record_migration(subsystem, name, state)
 
   if type(name) ~= "string" then
     error("name must be a string", 2)
-  end
-
-  local conn = self:get_stored_connection()
-  if not conn then
-    error("no connection")
   end
 
   local key_escaped  = self:escape_literal("schema_meta")

@@ -646,7 +646,6 @@ return {
 
       ctx.KONG_PREREAD_START = get_now()
 
-      local api = match_t.api or EMPTY_T
       local route = match_t.route or EMPTY_T
       local service = match_t.service or EMPTY_T
       local upstream_url_t = match_t.upstream_url_t
@@ -655,7 +654,7 @@ return {
                             upstream_url_t.type,
                             upstream_url_t.host,
                             upstream_url_t.port,
-                            service, route, api)
+                            service, route)
     end,
     after = function(ctx)
       local ok, err, errcode = balancer_setup_stage2(ctx)

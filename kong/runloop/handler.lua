@@ -79,17 +79,22 @@ do
 
       local service_pk = route.service
 
-      if not service_pk then
-        return nil, "route (" .. route.id .. ") is not associated with service"
+      local service
+      local stype
+
+      if service_pk then
+        service, err = db.services:select(service_pk)
+        if not service then
+          return nil, "could not find service for route (" .. route.id .. "): " ..
+                      err
+        end
+
+        stype = protocol_subsystem[service.protocol]
+
+      else
+        stype = subsystem
       end
 
-      local service, err = db.services:select(service_pk)
-      if not service then
-        return nil, "could not find service for route (" .. route.id .. "): " ..
-                    err
-      end
-
-      local stype = protocol_subsystem[service.protocol]
       if subsystem == stype then
         local r = {
           route   = route,
@@ -245,7 +250,9 @@ local function balancer_setup_stage1(ctx, scheme, host_type, host, port,
 
   -- TODO: this is probably not optimal
   do
-    local retries = service.retries
+    local s = service ~= ngx.null and service or EMPTY_T
+
+    local retries = s.retries
     if retries then
       balancer_data.retries = retries
 
@@ -253,7 +260,7 @@ local function balancer_setup_stage1(ctx, scheme, host_type, host, port,
       balancer_data.retries = 5
     end
 
-    local connect_timeout = service.connect_timeout
+    local connect_timeout = s.connect_timeout
     if connect_timeout then
       balancer_data.connect_timeout = connect_timeout
 
@@ -261,7 +268,7 @@ local function balancer_setup_stage1(ctx, scheme, host_type, host, port,
       balancer_data.connect_timeout = 60000
     end
 
-    local send_timeout = service.write_timeout
+    local send_timeout = s.write_timeout
     if send_timeout then
       balancer_data.send_timeout = send_timeout
 
@@ -269,7 +276,7 @@ local function balancer_setup_stage1(ctx, scheme, host_type, host, port,
       balancer_data.send_timeout = 60000
     end
 
-    local read_timeout = service.read_timeout
+    local read_timeout = s.read_timeout
     if read_timeout then
       balancer_data.read_timeout = read_timeout
 

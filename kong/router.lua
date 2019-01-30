@@ -5,6 +5,7 @@ local bit           = require "bit"
 
 
 local hostname_type = utils.hostname_type
+local subsystem     = ngx.config.subsystem
 local re_match      = ngx.re.match
 local re_find       = ngx.re.find
 local null          = ngx.null
@@ -14,6 +15,7 @@ local upper         = string.upper
 local lower         = string.lower
 local find          = string.find
 local sub           = string.sub
+local tonumber      = tonumber
 local ipairs        = ipairs
 local pairs         = pairs
 local error         = error
@@ -89,15 +91,21 @@ local protocol_subsystem = {
 }
 
 local function marshall_route(r)
-  local route    = r.route          or null
-  local service  = r.service        or null
-  local headers  = r.headers        or null
-  local paths    = route.paths      or null
-  local methods  = route.methods    or null
-  local protocol = service.protocol or null
-  local sources  = route.sources  or null
+  local route    = r.route       or null
+  local service  = r.service     or null
+  local headers  = r.headers     or null
+  local paths    = route.paths   or null
+  local methods  = route.methods or null
+  local snis     = route.snis    or null
+  local sources  = route.sources or null
   local destinations = route.destinations or null
-  local snis     = route.snis or null
+
+
+  local protocol
+  if service ~= null then
+    protocol = service.protocol or null
+  end
+
 
   if not (headers ~= null or methods ~= null or paths ~= null or
           sources ~= null or destinations ~= null or snis ~= null) then
@@ -105,7 +113,7 @@ local function marshall_route(r)
   end
 
   local route_t    = {
-    type           = protocol_subsystem[protocol],
+    type           = protocol_subsystem[protocol] or subsystem,
     route          = route,
     service        = service,
     strip_uri      = route.strip_path    == true,
@@ -331,30 +339,32 @@ local function marshall_route(r)
   -- upstream_url parsing
 
 
-  local host = service.host or null
-  if host ~= null then
-    route_t.upstream_url_t.host = host
-    route_t.upstream_url_t.type = hostname_type(host)
+  if service ~= null then
+    local host = service.host or null
+    if host ~= null then
+      route_t.upstream_url_t.host = host
+      route_t.upstream_url_t.type = hostname_type(host)
 
-  else
-    route_t.upstream_url_t.type = hostname_type("")
-  end
-
-  local port = service.port or null
-  if port ~= null then
-    route_t.upstream_url_t.port = port
-
-  else
-    if protocol == "https" then
-      route_t.upstream_url_t.port = 443
-
-    elseif protocol == "http" then
-      route_t.upstream_url_t.port = 80
+    else
+      route_t.upstream_url_t.type = hostname_type("")
     end
-  end
 
-  if route_t.type == "http" then
-    route_t.upstream_url_t.path = service.path or "/"
+    local port = service.port or null
+    if port ~= null then
+      route_t.upstream_url_t.port = port
+
+    else
+      if protocol == "https" then
+        route_t.upstream_url_t.port = 443
+
+      elseif protocol == "http" then
+        route_t.upstream_url_t.port = 80
+      end
+    end
+
+    if route_t.type == "http" then
+      route_t.upstream_url_t.path = service.path or "/"
+    end
   end
 
   return route_t
@@ -1127,10 +1137,19 @@ function _M.new(routes)
             local upstream_url_t = matched_route.upstream_url_t
             local matches        = ctx.matches
 
-
             -- Path construction
 
             if matched_route.type == "http" then
+              -- Service-less HTTP Route
+              if matched_route.service == null then
+                -- TODO: should we support Forwarded?
+                upstream_url_t.scheme = ngx.var.scheme
+                upstream_url_t.host = dst_ip
+                upstream_url_t.type = hostname_type(dst_ip)
+                upstream_url_t.port = dst_port
+                upstream_url_t.path = "/"
+              end
+
               -- if we do not have a path-match, then the postfix is simply the
               -- incoming path, without the initial slash
               local request_postfix = matches.uri_postfix or sub(req_uri, 2, -1)
@@ -1157,6 +1176,14 @@ function _M.new(routes)
 
               if matched_route.preserve_host then
                 upstream_host = raw_req_host or ngx.var.http_host
+              end
+
+            else
+              -- Service-less Stream Route
+              if matched_route.service == null then
+                upstream_url_t.host = dst_ip
+                upstream_url_t.type = hostname_type(dst_ip)
+                upstream_url_t.port = dst_port
               end
             end
 
@@ -1228,10 +1255,13 @@ function _M.new(routes)
 
       if ngx.var.http_kong_debug then
         ngx.header["Kong-Route-Id"]   = match_t.route.id
-        ngx.header["Kong-Service-Id"] = match_t.service.id
 
-        if match_t.service.name then
-          ngx.header["Kong-Service-Name"] = match_t.service.name
+        if match_t.service ~= null then
+          ngx.header["Kong-Service-Id"] = match_t.service.id
+
+          if match_t.service.name then
+            ngx.header["Kong-Service-Name"] = match_t.service.name
+          end
         end
       end
 

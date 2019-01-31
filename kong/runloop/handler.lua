@@ -248,41 +248,14 @@ local function balancer_setup_stage1(ctx, scheme, host_type, host, port,
     -- hash_cookie = nil,       -- if Upstream sets hash_on_cookie
   }
 
-  -- TODO: this is probably not optimal
+  service = service or EMPTY_T
+  route   = route   or EMPTY_T
+
   do
-    local s = service or EMPTY_T
-
-    local retries = s.retries
-    if retries then
-      balancer_data.retries = retries
-
-    else
-      balancer_data.retries = 5
-    end
-
-    local connect_timeout = s.connect_timeout
-    if connect_timeout then
-      balancer_data.connect_timeout = connect_timeout
-
-    else
-      balancer_data.connect_timeout = 60000
-    end
-
-    local send_timeout = s.write_timeout
-    if send_timeout then
-      balancer_data.send_timeout = send_timeout
-
-    else
-      balancer_data.send_timeout = 60000
-    end
-
-    local read_timeout = s.read_timeout
-    if read_timeout then
-      balancer_data.read_timeout = read_timeout
-
-    else
-      balancer_data.read_timeout = 60000
-    end
+    balancer_data.retries         = service.retries         or 5
+    balancer_data.connect_timeout = service.connect_timeout or 60000
+    balancer_data.send_timeout    = service.send_timeout    or 60000
+    balancer_data.read_timeout    = service.read_timeout    or 60000
   end
 
   ctx.service          = service
@@ -653,9 +626,16 @@ return {
 
       ctx.KONG_PREREAD_START = get_now()
 
-      local route = match_t.route or EMPTY_T
-      local service = match_t.service or EMPTY_T
+      local route = match_t.route
+      local service = match_t.service
       local upstream_url_t = match_t.upstream_url_t
+
+      if not service then
+        -- Service-less Stream Route
+        upstream_url_t.host = var.server_addr
+        upstream_url_t.type = utils.hostname_type(upstream_url_t.host)
+        upstream_url_t.port = tonumber(var.server_port)
+      end
 
       balancer_setup_stage1(ctx, match_t.upstream_scheme,
                             upstream_url_t.type,
@@ -702,8 +682,8 @@ return {
         return kong.response.exit(404, { message = "no Route matched with those values" })
       end
 
-      local route              = match_t.route or EMPTY_T
-      local service            = match_t.service or EMPTY_T
+      local route              = match_t.route
+      local service            = match_t.service
       local upstream_url_t     = match_t.upstream_url_t
 
       local realip_remote_addr = var.realip_remote_addr
@@ -732,13 +712,25 @@ return {
         forwarded_port  = var.server_port
       end
 
-      local protocols = route.protocols
-      if (protocols and
-          protocols.https and not protocols.http and forwarded_proto ~= "https")
+      local protocols = route and route.protocols
+      if (protocols and protocols.https and not protocols.http and
+          forwarded_proto ~= "https")
       then
         ngx.header["connection"] = "Upgrade"
         ngx.header["upgrade"]    = "TLS/1.2, HTTP/1.1"
         return kong.response.exit(426, { message = "Please use HTTPS protocol" })
+      end
+
+      -- Service-less HTTP Route
+      if service then
+        match_t.upstream_scheme = forwarded_proto
+        match_t.upstream_host   = forwarded_host
+        match_t.upstream_uri    =
+        upstream_url_t.scheme   = forwarded_proto
+        upstream_url_t.host     = forwarded_host
+        upstream_url_t.type     = utils.hostname_type(forwarded_host)
+        upstream_url_t.port     = forwarded_port
+        upstream_url_t.path     = "/"
       end
 
       balancer_setup_stage1(ctx, match_t.upstream_scheme,

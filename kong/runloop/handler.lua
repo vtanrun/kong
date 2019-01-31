@@ -250,7 +250,7 @@ local function balancer_setup_stage1(ctx, scheme, host_type, host, port,
 
   -- TODO: this is probably not optimal
   do
-    local s = service ~= ngx.null and service or EMPTY_T
+    local s = service or EMPTY_T
 
     local retries = s.retries
     if retries then

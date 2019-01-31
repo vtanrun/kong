@@ -8,7 +8,6 @@ local hostname_type = utils.hostname_type
 local subsystem     = ngx.config.subsystem
 local re_match      = ngx.re.match
 local re_find       = ngx.re.find
-local null          = ngx.null
 local insert        = table.insert
 local sort          = table.sort
 local upper         = string.upper
@@ -91,24 +90,24 @@ local protocol_subsystem = {
 }
 
 local function marshall_route(r)
-  local route    = r.route       or null
-  local service  = r.service     or null
-  local headers  = r.headers     or null
-  local paths    = route.paths   or null
-  local methods  = route.methods or null
-  local snis     = route.snis    or null
-  local sources  = route.sources or null
-  local destinations = route.destinations or null
+  local route    = r.route
+  local service  = r.service
+  local headers  = r.headers
+  local paths    = route.paths
+  local methods  = route.methods
+  local snis     = route.snis
+  local sources  = route.sources
+  local destinations = route.destinations
 
 
   local protocol
-  if service ~= null then
-    protocol = service.protocol or null
+  if service then
+    protocol = service.protocol
   end
 
 
-  if not (headers ~= null or methods ~= null or paths ~= null or
-          sources ~= null or destinations ~= null or snis ~= null) then
+  if not (headers or methods or paths  or
+          sources or destinations or snis) then
     return nil, "could not categorize route"
   end
 
@@ -133,7 +132,7 @@ local function marshall_route(r)
   -- headers
 
 
-  if headers ~= null then
+  if headers then
     if type(headers) ~= "table" then
       return nil, "headers field must be a table"
     end
@@ -182,7 +181,7 @@ local function marshall_route(r)
   -- paths
 
 
-  if paths ~= null then
+  if paths then
     if type(paths) ~= "table" then
       return nil, "paths field must be a table"
     end
@@ -227,7 +226,7 @@ local function marshall_route(r)
   -- methods
 
 
-  if methods ~= null then
+  if methods then
     if type(methods) ~= "table" then
       return nil, "methods field must be a table"
     end
@@ -246,7 +245,7 @@ local function marshall_route(r)
   -- sources
 
 
-  if sources ~= null then
+  if sources then
     if type(sources) ~= "table" then
       return nil, "sources field must be a table"
     end
@@ -279,7 +278,7 @@ local function marshall_route(r)
   -- destinations
 
 
-  if destinations ~= null then
+  if destinations then
     if type(destinations) ~= "table" then
       return nil, "destinations field must be a table"
     end
@@ -312,7 +311,7 @@ local function marshall_route(r)
   -- snis
 
 
-  if snis ~= null then
+  if snis then
     if type(snis) ~= "table" then
       return nil, "snis field must be a table"
     end
@@ -331,7 +330,7 @@ local function marshall_route(r)
   end
 
 
-  if protocol ~= null then
+  if protocol then
     route_t.upstream_url_t.scheme = protocol
   end
 
@@ -339,9 +338,9 @@ local function marshall_route(r)
   -- upstream_url parsing
 
 
-  if service ~= null then
-    local host = service.host or null
-    if host ~= null then
+  if service then
+    local host = service.host
+    if host then
       route_t.upstream_url_t.host = host
       route_t.upstream_url_t.type = hostname_type(host)
 
@@ -349,8 +348,8 @@ local function marshall_route(r)
       route_t.upstream_url_t.type = hostname_type("")
     end
 
-    local port = service.port or null
-    if port ~= null then
+    local port = service.port
+    if port then
       route_t.upstream_url_t.port = port
 
     else
@@ -1141,7 +1140,7 @@ function _M.new(routes)
 
             if matched_route.type == "http" then
               -- Service-less HTTP Route
-              if matched_route.service == null then
+              if not matched_route.service then
                 -- TODO: should we support Forwarded?
                 upstream_url_t.scheme = ngx.var.scheme
                 upstream_url_t.host = dst_ip
@@ -1180,7 +1179,7 @@ function _M.new(routes)
 
             else
               -- Service-less Stream Route
-              if matched_route.service == null then
+              if not matched_route.service then
                 upstream_url_t.host = dst_ip
                 upstream_url_t.type = hostname_type(dst_ip)
                 upstream_url_t.port = dst_port
@@ -1256,7 +1255,7 @@ function _M.new(routes)
       if ngx.var.http_kong_debug then
         ngx.header["Kong-Route-Id"]   = match_t.route.id
 
-        if match_t.service ~= null then
+        if match_t.service then
           ngx.header["Kong-Service-Id"] = match_t.service.id
 
           if match_t.service.name then

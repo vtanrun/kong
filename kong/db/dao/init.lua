@@ -15,6 +15,7 @@ local type         = type
 local next         = next
 local log          = ngx.log
 local fmt          = string.format
+local match        = string.match
 
 
 local ERR          = ngx.ERR
@@ -143,6 +144,24 @@ local function validate_options_value(options, schema, context)
 
   elseif schema.ttl ~= true and options.ttl ~= nil then
     errors.ttl = fmt("cannot be used with '%s'", schema.name)
+  end
+
+  if schema.tags == true and options.tags ~= nil then
+    if context ~= "select" then
+      errors.tags = fmt("option can only be used with selects and pages, not with '%ss'",
+                       tostring(context))
+    elseif type(options.tags) ~= "table" then
+      errors.tags = "must be a table"
+    elseif #options.tags > 5 then
+      errors.tags = "cannot be query more than 5 tags"
+    elseif not match(concat(options.tags), "^[%w%.%-%_~]+$") then
+      errors.tags = "must only contain alphanumeric and '., -, _, ~' characters"
+    elseif #options.tags > 1 and options.tags_cond ~= "and" and options.tags_cond ~= "or" then
+      errors.tags_cond = "must be a either 'and' or 'or' when more than one tags are specified"
+    end
+
+  elseif schema.tags ~= true and options.tags ~= nil then
+    errors.tags = fmt("cannot be used with '%s'", schema.name)
   end
 
   if next(errors) then

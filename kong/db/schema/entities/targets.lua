@@ -16,6 +16,7 @@ return {
   dao = "kong.db.dao.targets",
   primary_key = { "id" },
   endpoint_key = "target",
+  tags = true,
   fields = {
     { id = typedefs.uuid },
     { created_at = typedefs.auto_timestamp_ms },

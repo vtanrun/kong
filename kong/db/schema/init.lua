@@ -1777,6 +1777,17 @@ function Schema.new(definition, is_subschema)
     end
   end
 
+  -- Note: this block must present before the for loop below
+  -- So that Lua will count the field we add as part of the "array"
+  -- part of the self.fields table
+  if self.tags then
+    local typedef_tag = { tags = {
+      type = "set",
+      elements = { type = "string" },
+    } }
+    self.fields[#self.fields+1] = typedef_tag
+  end
+
   for key, field in self:each_field() do
     -- Also give access to fields by name
     self.fields[key] = field

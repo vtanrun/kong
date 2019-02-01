@@ -6,6 +6,7 @@ return {
   name        = "certificates",
   primary_key = { "id" },
   dao         = "kong.db.dao.certificates",
+  tags        = true,
 
   fields = {
     { id = typedefs.uuid, },

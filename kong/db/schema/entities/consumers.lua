@@ -4,6 +4,7 @@ return {
   name         = "consumers",
   primary_key  = { "id" },
   endpoint_key = "username",
+  tags = true,
 
   fields = {
     { id             = typedefs.uuid, },

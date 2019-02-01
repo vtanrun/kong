@@ -177,6 +177,7 @@ local meta_errors = {
   CACHE_KEY = "values must be field names",
   CACHE_KEY_UNIQUE = "a field used as a single cache key must be unique",
   TTL_RESERVED = "ttl is a reserved field name when ttl is enabled",
+  TAGS_RESERVED = "tags is a reserved field name when tags is enabled",
   SUBSCHEMA_KEY = "value must be a field name",
   SUBSCHEMA_KEY_STRING = "must be a string field",
 }
@@ -351,6 +352,12 @@ local MetaSchema = Schema.new({
       }
     },
     {
+      tags = {
+        type = "boolean",
+        nilable = true,
+      }
+    },
+    {
       subschema_key = {
         type = "string",
         nilable = true,
@@ -463,6 +470,16 @@ local MetaSchema = Schema.new({
         local k = next(item)
         if k == "ttl" then
           errors["ttl"] = meta_errors.TTL_RESERVED
+          break
+        end
+      end
+    end
+
+    if schema.tags then
+      for _, item in ipairs(schema.fields) do
+        local k = next(item)
+        if k == "tags" then
+          errors["tags"] = meta_errors.TAGS_RESERVED
           break
         end
       end

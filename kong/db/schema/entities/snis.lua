@@ -5,6 +5,7 @@ return {
   primary_key  = { "id" },
   endpoint_key = "name",
   dao          = "kong.db.dao.snis",
+  tags         = true,
 
   fields = {
     { id           = typedefs.uuid, },

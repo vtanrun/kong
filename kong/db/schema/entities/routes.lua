@@ -33,6 +33,7 @@ return {
   name         = "routes",
   primary_key  = { "id" },
   endpoint_key = "name",
+  tags = true,
 
   fields = {
     { id             = typedefs.uuid, },

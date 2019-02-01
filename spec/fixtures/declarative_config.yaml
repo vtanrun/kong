@@ -1,0 +1,25 @@
+_format_version: "1.1"
+services:
+- name: foo
+  host: example.com
+  protocol: https
+  _comment: my comment
+  _ignore:
+  - foo: bar
+  plugins:
+    - name: key-auth
+      _comment: my comment
+      _ignore:
+      - foo: bar
+    - name: http-log
+      config:
+        http_endpoint: https://example.com
+- name: bar
+  host: example.test
+  port: 3000
+  plugins:
+  - name: basic-auth
+  - name: tcp-log
+    config:
+      host: 127.0.0.1
+      port: 10000

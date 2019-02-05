@@ -113,14 +113,16 @@ function Plugins:load_plugin_schemas(plugin_set)
       return nil, err
     end
 
-    if schema.fields.consumer and schema.fields.consumer.eq == null then
-      plugin.no_consumer = true
-    end
-    if schema.fields.route and schema.fields.route.eq == null then
-      plugin.no_route = true
-    end
-    if schema.fields.service and schema.fields.service.eq == null then
-      plugin.no_service = true
+    if schema then -- load_subschema can return nil, nil, err_t
+      if schema.fields.consumer and schema.fields.consumer.eq == null then
+        plugin.no_consumer = true
+      end
+      if schema.fields.route and schema.fields.route.eq == null then
+        plugin.no_route = true
+      end
+      if schema.fields.service and schema.fields.service.eq == null then
+        plugin.no_service = true
+      end
     end
 
     ngx_log(ngx_DEBUG, "Loading plugin: " .. plugin)
